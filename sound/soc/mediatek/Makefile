@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
-subdir-ccflags-y := -Werror $(call cc-disable-warning, unused-but-set-variable)
+subdir-ccflags-y := $(call cc-disable-warning, unused-but-set-variable)
 
 # scp smartpa related code
 obj-$(CONFIG_MTK_AUDIO_SCP_SPKPROTECT_SUPPORT) += scp_spk/
