@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 
+ccflags-y += -I$(src)
+
 # Do not instrument the tracer itself:
 
 ifdef CONFIG_FUNCTION_TRACER
