@@ -1,3 +1,4 @@
+ccflags-y += -I$(src)
 ccflags-y += -I$(srctree)/drivers/gpu/drm/oplus
 
 mediatek-drm-y := mtk_drm_drv.o \
