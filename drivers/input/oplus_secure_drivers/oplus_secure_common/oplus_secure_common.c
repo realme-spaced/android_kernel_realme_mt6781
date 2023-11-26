@@ -48,6 +48,7 @@
 #include <linux/version.h>
 #include "../include/oplus_secure_common.h"
 #include <linux/init.h>
+#include <linux/io.h>
 #ifdef QCOM_QSEELOG_ENCRYPT
 #include <linux/qcom_scm.h>
 #endif //QCOM_QSEELOG_ENCRYPT
