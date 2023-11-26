@@ -3,8 +3,8 @@
  * Copyright (c) 2019 MediaTek Inc.
 */
 
-#include <helio-dvfsrc-qos.h>
-#include <helio-dvfsrc-opp.h>
+#include "helio-dvfsrc-qos.h"
+#include "helio-dvfsrc-opp.h"
 #if defined(CONFIG_MTK_QOS_V2)
 #include <mtk_qos_ipi.h>
 #endif
