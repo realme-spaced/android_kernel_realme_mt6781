@@ -90,7 +90,6 @@ struct opp_table *_find_opp_table(struct device *dev)
 
 /**
  * dev_pm_opp_get_voltage() - Gets the voltage corresponding to an opp
- * @opp:	opp for which voltage has to be returned for
  *
  * Return: voltage in micro volt corresponding to the opp, else
  * return 0
@@ -110,7 +109,6 @@ EXPORT_SYMBOL_GPL(dev_pm_opp_get_voltage);
 
 /**
  * dev_pm_opp_get_freq() - Gets the frequency corresponding to an available opp
- * @opp:	opp for which frequency has to be returned for
  *
  * Return: frequency in hertz corresponding to the opp, else
  * return 0
@@ -128,7 +126,6 @@ EXPORT_SYMBOL_GPL(dev_pm_opp_get_freq);
 
 /**
  * dev_pm_opp_is_turbo() - Returns if opp is turbo OPP or not
- * @opp: opp for which turbo mode is being verified
  *
  * Turbo OPPs are not for normal use, and can be enabled (under certain
  * conditions) for short duration of times to finish high throughput work
@@ -1016,7 +1013,6 @@ int _opp_add(struct device *dev, struct dev_pm_opp *new_opp,
 
 /**
  * _opp_add_v1() - Allocate a OPP based on v1 bindings.
- * @opp_table:	OPP table
  * @dev:	device for which we do this operation
  * @freq:	Frequency in Hz for this OPP
  * @u_volt:	Voltage in uVolts for this OPP
@@ -1129,7 +1125,6 @@ EXPORT_SYMBOL_GPL(dev_pm_opp_set_supported_hw);
 
 /**
  * dev_pm_opp_put_supported_hw() - Releases resources blocked for supported hw
- * @opp_table: OPP table returned by dev_pm_opp_set_supported_hw().
  *
  * This is required only for the V2 bindings, and is called for a matching
  * dev_pm_opp_set_supported_hw(). Until this is called, the opp_table structure
@@ -1201,7 +1196,6 @@ EXPORT_SYMBOL_GPL(dev_pm_opp_set_prop_name);
 
 /**
  * dev_pm_opp_put_prop_name() - Releases resources blocked for prop-name
- * @opp_table: OPP table returned by dev_pm_opp_set_prop_name().
  *
  * This is required only for the V2 bindings, and is called for a matching
  * dev_pm_opp_set_prop_name(). Until this is called, the opp_table structure
@@ -1338,7 +1332,6 @@ EXPORT_SYMBOL_GPL(dev_pm_opp_set_regulators);
 
 /**
  * dev_pm_opp_put_regulators() - Releases resources blocked for regulator
- * @opp_table: OPP table returned from dev_pm_opp_set_regulators().
  */
 void dev_pm_opp_put_regulators(struct opp_table *opp_table)
 {
@@ -1418,7 +1411,6 @@ EXPORT_SYMBOL_GPL(dev_pm_opp_set_clkname);
 
 /**
  * dev_pm_opp_put_clkname() - Releases resources blocked for clk.
- * @opp_table: OPP table returned from dev_pm_opp_set_clkname().
  */
 void dev_pm_opp_put_clkname(struct opp_table *opp_table)
 {
@@ -1481,7 +1473,6 @@ EXPORT_SYMBOL_GPL(dev_pm_opp_register_set_opp_helper);
 /**
  * dev_pm_opp_register_put_opp_helper() - Releases resources blocked for
  *					   set_opp helper
- * @opp_table: OPP table returned from dev_pm_opp_register_set_opp_helper().
  *
  * Release resources blocked for platform specific set_opp helper.
  */
@@ -1602,6 +1593,84 @@ unlock:
 	mutex_unlock(&opp_table->lock);
 put_table:
 	dev_pm_opp_put_opp_table(opp_table);
+	return r;
+}
+
+/*
+ * dev_pm_opp_adjust_voltage() - helper to change the voltage of an OPP
+ * @dev:		device for which we do this operation
+ * @freq:		OPP frequency to adjust voltage of
+ * @u_volt:		new OPP voltage
+ *
+ * Change the voltage of an OPP with an RCU operation.
+ *
+ * Return: -EINVAL for bad pointers, -ENOMEM if no memory available for the
+ * copy operation, returns 0 if no modifcation was done OR modification was
+ * successful.
+ *
+ * Locking: The internal device_opp and opp structures are RCU protected.
+ * Hence this function internally uses RCU updater strategy with mutex locks to
+ * keep the integrity of the internal data structures. Callers should ensure
+ * that this function is *NOT* called under RCU protection or in contexts where
+ * mutex locking or synchronize_rcu() blocking calls cannot be used.
+ */
+int dev_pm_opp_adjust_voltage(struct device *dev, unsigned long freq,
+			      unsigned long u_volt)
+{
+	struct opp_table *opp_table;
+	struct dev_pm_opp *new_opp, *tmp_opp, *opp = ERR_PTR(-ENODEV);
+	int r = 0;
+
+	/* Find the opp_table */
+	opp_table = _find_opp_table(dev);
+	if (IS_ERR(opp_table)) {
+		r = PTR_ERR(opp_table);
+		dev_warn(dev, "%s: Device OPP not found (%d)\n", __func__, r);
+		return r;
+	}
+
+	/* keep the node allocated */
+	new_opp = kmalloc(sizeof(*new_opp), GFP_KERNEL);
+	if (!new_opp)
+		return -ENOMEM;
+
+	mutex_lock(&opp_table->lock);
+
+	/* Do we have the frequency? */
+	list_for_each_entry(tmp_opp, &opp_table->opp_list, node) {
+		if (tmp_opp->rate == freq) {
+			opp = tmp_opp;
+			break;
+		}
+	}
+
+	if (IS_ERR(opp)) {
+		r = PTR_ERR(opp);
+		goto unlock;
+	}
+
+	/* Is update really needed? */
+	if (opp->supplies->u_volt == u_volt)
+		goto unlock;
+
+	/* copy the old data over */
+	*new_opp = *opp;
+
+	/* plug in new node */
+	new_opp->supplies->u_volt = u_volt;
+
+	list_replace_rcu(&opp->node, &new_opp->node);
+	mutex_unlock(&opp_table->lock);
+
+	/* Notify the change of the OPP */
+	blocking_notifier_call_chain(&opp_table->head, OPP_EVENT_ADJUST_VOLTAGE,
+				     opp);
+
+	return 0;
+
+unlock:
+	mutex_unlock(&opp_table->lock);
+	kfree(new_opp);
 	return r;
 }
 
