@@ -110,7 +110,7 @@ static struct oplus_chg_chip *g_charger_chip = NULL;
 
 #define DOUBLE_BATTERY	2
 
-int enable_charger_log = 2;
+int enable_charger_log = 0;
 int charger_abnormal_log = 0;
 int tbatt_pwroff_enable = 1;
 static int mcu_status = 0;
@@ -751,7 +751,7 @@ int oplus_battery_get_property(struct power_supply *psy,
 				if (!chip->authenticate) {
 					val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
 				} else {
-					val->intval = chip->prop_status;
+					val->intval = chip->prop_status == POWER_SUPPLY_STATUS_NOT_CHARGING ? POWER_SUPPLY_STATUS_DISCHARGING : chip->prop_status;
 				}
 				if (oplus_wpc_get_online_status() || oplus_chg_is_wls_present())
 					pre_batt_status = val->intval;
@@ -5983,7 +5983,7 @@ static int fb_notifier_callback(struct notifier_block *nb,
 		if (event == FB_EVENT_BLANK) {
 			blank = *(int *)evdata->data;
 			if (blank == FB_BLANK_UNBLANK) {
-				g_charger_chip->led_on = true;
+				g_charger_chip->led_on = false;
 				g_charger_chip->led_on_change = true;
 			} else if (blank == FB_BLANK_POWERDOWN) {
 				g_charger_chip->led_on = false;
