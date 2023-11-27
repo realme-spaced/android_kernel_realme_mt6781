@@ -5519,7 +5519,7 @@ static int oplus_chg_usbtemp_parse_dt(struct oplus_chg_chip *chip)
 	return rc;
 }
 
-static bool oplus_mtk_hv_flashled_check_is_gpio()
+static bool oplus_mtk_hv_flashled_check_is_gpio(void)
 {
 	if (gpio_is_valid(mtkhv_flashled_pinctrl.chgvin_gpio) && gpio_is_valid(mtkhv_flashled_pinctrl.pmic_chgfunc_gpio)) {
 		return true;
@@ -6706,7 +6706,7 @@ void oplus_set_typec_sinkonly(void)
 	}
 };
 
-void oplus_set_typec_cc_open()
+void oplus_set_typec_cc_open(void)
 {
 	if (pinfo != NULL && pinfo->tcpc != NULL) {
 		printk(KERN_ERR "[OPLUS_CHG][%s]: usbtemp set cc open\n", __func__);
