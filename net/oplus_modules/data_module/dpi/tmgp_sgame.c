@@ -138,7 +138,7 @@ static void wzry_netlink_free(void *data)
 	}
 }
 
-static void notify_wzry_server_ip() {
+static void notify_wzry_server_ip(void) {
 	char *buffer = NULL;
 	int size = 0;
 	Netlink__Proto__NotifyMessage msg = NETLINK__PROTO__NOTIFY_MESSAGE__INIT;

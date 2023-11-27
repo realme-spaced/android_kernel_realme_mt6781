@@ -234,7 +234,7 @@ static int netlink_send_to_user(int msg_type, char *data, int data_len)
  *
  * @return     0 if successful, negative otherwise.
  */
-static int request_sk_port_and_pid()
+static int request_sk_port_and_pid(void)
 {
 	int ret = 0;
 	char msg_buf[sizeof(struct sk_pid_st) * SK_PID_ARRAY_LEN] = { 0 };

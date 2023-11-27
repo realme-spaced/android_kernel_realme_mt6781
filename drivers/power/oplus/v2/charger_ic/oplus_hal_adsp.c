@@ -2586,7 +2586,7 @@ static int battery_chg_ship_mode(struct notifier_block *nb, unsigned long code,
 #ifdef OPLUS_FEATURE_CHG_BASIC
 
 #ifdef OPLUS_CHG_UNDEF
-int oplus_get_voocphy_enable()
+int oplus_get_voocphy_enable(void)
 {
 	int rc = 0;
 	struct battery_chg_dev *bcdev = g_bcdev;

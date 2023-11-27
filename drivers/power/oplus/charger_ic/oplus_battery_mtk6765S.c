@@ -2511,7 +2511,7 @@ static bool oplus_chg_get_vbus_status(struct oplus_chg_chip *chip)
 		return false;
 }
 
-enum charger_type mt_get_charger_type()
+enum charger_type mt_get_charger_type(void)
 {
 	return g_oplus_chip->charger_type;
 }
@@ -4931,7 +4931,7 @@ static void init_proc_upmu_vs1_config(void)
 	}
 }
 
-static int oplus_pmic_chip_init()
+static int oplus_pmic_chip_init(void)
 {
 	static struct mtk_charger *pinfo;
 	int ret = 0;
